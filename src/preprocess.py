@@ -31,6 +31,7 @@ def load_and_clean():
 
     # ── Step 3: Build clean dataframe ────────────────────────
     df = features.copy()
+    # df[TARGET_COL] = label.astype(int)
     df[TARGET_COL] = label.astype(int)
 
     # Encode sensitive attribute: SEX is coded 1=Male, 2=Female in ACS

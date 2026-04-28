@@ -22,7 +22,7 @@ FEATURE_COLS = [
     'COW',     # Class of worker
 ]
 
-TARGET_COL = 'PINCP'           # 1 = income > $50k, 0 otherwise
+TARGET_COL = 'income_binary'           # 1 = income > $50k, 0 otherwise
 SENSITIVE_COL = 'sex_binary'   # 1 = Female, 0 = Male
 
 # ── Deployment simulation ────────────────────────────────────
@@ -30,8 +30,10 @@ N_WINDOWS = 10
 DEFAULT_THRESHOLD = 0.5
 
 # Fairness tolerances — if gap exceeds these, intervention fires
-DPD_TOLERANCE = 0.10
-EOD_TOLERANCE = 0.10
+DPD_TOLERANCE = 0.03
+EOD_TOLERANCE = 0.05
+PP_TOLERANCE = 0.10        # Predictive parity tolerance (typically looser)
+ACC_GAP_TOLERANCE = 0.05
 
 # ── Drift schedules — one value per window ───────────────────
 # Demographic shift: target ratio of group=1 (Female) in each window
