@@ -48,18 +48,20 @@ def simulate_feature_drift(X, drift_magnitude=0.2, random_state=42):
 
     drift_magnitude=0.2 means noise std = 20% of feature std
     """
-    rng = np.random.RandomState(random_state)
-    X_drifted = X.copy().astype(float)
+    rng = np.random.RandomState(random_state)   
+    X_drifted = X.copy().astype(float)          
 
     for col in X.columns:
-        noise = rng.normal(
-            loc=0,
-            scale=drift_magnitude * X[col].std(),
-            size=len(X)
-        )
-        X_drifted[col] = X_drifted[col] + noise
+        # Only apply to continuous features
+        if col in ['AGEP', 'WKHP']:
+            noise = rng.normal(
+                loc=0,
+                scale=drift_magnitude * X[col].std(),
+                size=len(X)
+            )
+            X_drifted[col] += noise
 
-    return X_drifted
+    return X_drifted 
 
 
 def simulate_label_noise(y, noise_rate=0.1, random_state=42):

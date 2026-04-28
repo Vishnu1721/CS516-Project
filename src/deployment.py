@@ -12,6 +12,8 @@ from config import (N_WINDOWS, DEFAULT_THRESHOLD,
                     DEMO_SHIFT_SCHEDULE, FEATURE_DRIFT_SCHEDULE,
                     LABEL_NOISE_SCHEDULE)
 
+def apply_global_threshold(scores, threshold=0.5):
+    return (scores >= threshold).astype(int)
 
 def run_deployment(model, scaler, X_test, y_test, s_test):
     """
@@ -65,22 +67,89 @@ def run_deployment(model, scaler, X_test, y_test, s_test):
         X_w_sc = scaler.transform(X_w)            # scale using TRAIN scaler
         scores_w = model.predict_proba(X_w_sc)[:, 1]  # continuous risk scores
 
-        # ── Step 3: Apply group-specific thresholds ──────────
-        y_pred_w = apply_group_thresholds(
-            scores_w, s_w.values, thresholds
-        )
+        # ── Step 3: Apply strategies ──────────
+        # Strategy 1: Static (no fairness handling)
+        y_pred_static = apply_global_threshold(scores_w, 0.5)
+
+        # Strategy 2: Global adaptive threshold (single threshold)
+        y_pred_global = apply_global_threshold(scores_w, thresholds[0])
+
+        # Strategy 3: Group-specific thresholds (your method)
+        y_pred_group = apply_group_thresholds(scores_w, s_w.values, thresholds)
 
         # ── Step 4: Compute metrics ──────────────────────────
-        metrics = compute_all_metrics(
-            y_w.values, y_pred_w, scores_w, s_w.values
+        metrics_static = compute_all_metrics(
+          y_w.values, y_pred_static, scores_w, s_w.values
         )
-        metrics['window']               = w
-        metrics['threshold_g0']         = thresholds[0]
-        metrics['threshold_g1']         = thresholds[1]
-        metrics['demo_shift']           = DEMO_SHIFT_SCHEDULE[w]
-        metrics['feature_drift']        = FEATURE_DRIFT_SCHEDULE[w]
-        metrics['label_noise']          = LABEL_NOISE_SCHEDULE[w]
-        metrics['intervention_triggered'] = False
+
+        metrics_global = compute_all_metrics(
+         y_w.values, y_pred_global, scores_w, s_w.values
+       )
+
+        metrics_group = compute_all_metrics(
+          y_w.values, y_pred_group, scores_w, s_w.values
+        )
+
+        # metrics['window']               = w
+        # metrics['threshold_g0']         = thresholds[0]
+        # metrics['threshold_g1']         = thresholds[1]
+        # metrics['demo_shift']           = DEMO_SHIFT_SCHEDULE[w]
+        # metrics['feature_drift']        = FEATURE_DRIFT_SCHEDULE[w]
+        # metrics['label_noise']          = LABEL_NOISE_SCHEDULE[w]
+        # metrics['intervention_triggered'] = False
+
+        metrics = {
+            'window': w,
+
+            # Static baseline
+            'dpd_static': metrics_static['dpd'],
+            'eod_static': metrics_static['eod'],
+            'acc_static': metrics_static['accuracy'],
+            'auc_static': metrics_static['auc'],
+
+            # Global threshold
+            'dpd_global': metrics_global['dpd'],
+            'eod_global': metrics_global['eod'],
+            'acc_global': metrics_global['accuracy'],
+            'auc_global': metrics_global['auc'],
+
+            # Group adaptive (main method)
+            'dpd': metrics_group['dpd'],
+            'eod': metrics_group['eod'],
+            'auc': metrics_group['auc'],
+            'accuracy': metrics_group['accuracy'],
+            'fpr_gap': metrics_group['fpr_gap'],
+            'fnr_gap': metrics_group['fnr_gap'],
+
+            'threshold_g0': thresholds[0],
+            'threshold_g1': thresholds[1],
+
+            'demo_shift': DEMO_SHIFT_SCHEDULE[w],
+            'feature_drift': FEATURE_DRIFT_SCHEDULE[w],
+            'label_noise': LABEL_NOISE_SCHEDULE[w],
+
+            'intervention_triggered': False
+        }
+
+        # ── STEP 7: Identify which metric breaks ──────────
+
+        metric_values = {
+            'dpd': metrics['dpd'],
+            'fpr_gap': metrics['fpr_gap'],
+            'fnr_gap': metrics['fnr_gap']
+        }
+
+        metrics['worst_metric'] = max(metric_values, key=metric_values.get)
+
+        # Identify likely cause
+        if metrics['demo_shift'] > 0.6:
+           metrics['likely_cause'] = 'demographic_shift'
+        elif metrics['feature_drift'] > 0.15:
+           metrics['likely_cause'] = 'feature_drift'
+        elif metrics['label_noise'] > 0.1:
+           metrics['likely_cause'] = 'label_noise'
+        else:
+           metrics['likely_cause'] = 'baseline'
 
         print(f"  Metrics before intervention: "
               f"DPD={metrics['dpd']:.3f}  "
@@ -97,17 +166,18 @@ def run_deployment(model, scaler, X_test, y_test, s_test):
             thresholds = adapt_thresholds(
                 scores_w, y_w.values, s_w.values, thresholds
             )
-
-            # Recompute metrics after intervention
             y_pred_adapted = apply_group_thresholds(
-                scores_w, s_w.values, thresholds
+               scores_w, s_w.values, thresholds
             )
+
             metrics_after = compute_all_metrics(
-                y_w.values, y_pred_adapted, scores_w, s_w.values
+               y_w.values, y_pred_adapted, scores_w, s_w.values
             )
+
             metrics['dpd_after']  = metrics_after['dpd']
             metrics['eod_after']  = metrics_after['eod']
             metrics['acc_after']  = metrics_after['accuracy']
+
 
             print(f"  Metrics after  intervention: "
                   f"DPD={metrics_after['dpd']:.3f}  "
