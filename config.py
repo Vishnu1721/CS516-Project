@@ -32,6 +32,8 @@ DEFAULT_THRESHOLD = 0.5
 # Fairness tolerances — if gap exceeds these, intervention fires
 DPD_TOLERANCE = 0.03
 EOD_TOLERANCE = 0.05
+PP_TOLERANCE = 0.10        # Predictive parity tolerance (typically looser)
+ACC_GAP_TOLERANCE = 0.05
 
 # ── Drift schedules — one value per window ───────────────────
 # Demographic shift: target ratio of group=1 (Female) in each window

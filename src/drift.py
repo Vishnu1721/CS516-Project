@@ -18,8 +18,8 @@ def simulate_demographic_shift(X, y, sensitive,
     """
     rng = np.random.RandomState(random_state)
 
-    idx_g1 = np.where(sensitive == 1)[0]  # African-American indices
-    idx_g0 = np.where(sensitive == 0)[0]  # Caucasian indices
+    idx_g1 = np.where(sensitive == 1)[0]  # FEMALE in ACS
+    idx_g0 = np.where(sensitive == 0)[0]  # MALE
 
     n_total    = len(sensitive)
     n_g1_want  = int(n_total * target_ratio)
@@ -69,10 +69,9 @@ def simulate_label_noise(y, noise_rate=0.1, random_state=42):
     Randomly flips a fraction of labels.
 
     WHY THIS MATTERS:
-    In recidivism prediction, the label (re-arrested within 2 years)
-    depends on police activity. If policing patterns change,
-    or the follow-up period shortens, some labels become unreliable.
-    This simulates that degraded outcome reliability.
+Income labels are imperfect. People misreport income on surveys.
+Self-employment income is hard to estimate. Inflation changes
+what '>$50k' means over time. This simulates that label unreliability.
 
     noise_rate=0.10 means 10% of labels are randomly flipped
     """
