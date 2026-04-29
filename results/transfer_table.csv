@@ -1,0 +1,9 @@
+Metric,Baseline (W0),Worst Value,Worst Window,Relative Change,Degraded?
+Accuracy,0.777,0.698,W8,-10.1%,✗
+AUC,0.854,0.743,W8,-13.1%,✗
+DPD,0.020,0.054,W8,+177.6%,✗
+EOD,0.086,0.086,W0,+0.0%,✓ stable
+Predictive Parity Diff,0.122,0.149,W8,+22.1%,✗
+FPR Gap,0.038,0.048,W9,+28.2%,✗
+FNR Gap,0.048,0.048,W0,+0.0%,✓ stable
+Accuracy Gap,0.015,0.074,W3,+406.6%,✗
